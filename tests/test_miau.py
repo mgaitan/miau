@@ -1,30 +1,34 @@
-#!/usr/bin/env python
-# coding: utf-8
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
-"""
-test_miau
-----------------------------------
-Tests for 'miau' module.
-"""
-
-import unittest
-
-from miau import miau
+import pytest
+from miau.miau import fragmenter
 
 
-class TestMiau(unittest.TestCase):
+SPEECH_1 = """Escucharemos las palabras del señor presidente de La Nación,
+Mauricio Macri.
 
-    def setUp(self):
-        pass
+Buenos días, buenos días. Una alegría estar acá a punto de ser otro vehículo
+experimental en el espacio con este viento, vamos a salir para arriba en cualquier momento con la Gobernadora
+que con el viento se emociona y le caen las lágrimas."""
 
-    def test_something(self):
-        pass
+@pytest.mark.parametrize('remix, expected', [("""Buenos días, buenos días.
+vamos a salir para arriba
+con la Gobernadora
+con el viento
+en el espacio """,
 
-    def tearDown(self):
-        pass
+["""Escucharemos las palabras del señor presidente de La Nación, Mauricio Macri.
 
-if __name__ == '__main__':
-    unittest.main()
-
+Buenos días, buenos días.
+Una alegría estar acá a punto de ser otro vehículo experimental
+en el espacio
+con este viento,
+vamos a salir para arriba
+en cualquier momento
+con la Gobernadora
+que
+con el viento
+se emociona y le caen las lágrimas."""]
+)
+])
+def test_fragment(remix, expected):
+    result = fragment(SPEECH_1, remix)
+    assert result == expected
