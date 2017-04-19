@@ -20,6 +20,7 @@ Options:
 """
 
 import os
+import re
 from collections import OrderedDict
 import json
 import tempfile
@@ -36,6 +37,8 @@ from docopt import docopt
 
 VERSION = '0.1'
 
+OFFSET_PATTERN = re.compile('^(?P<offset_begin>(\+|\-)+)?(?P<line>.*?)(?P<offset_end>(\+|\-)+)?$')
+
 logging.basicConfig(format='[miau] %(asctime)s %(levelname)s: %(message)s',
                     level=10,
                     datefmt='%Y-%m-%d %H:%M:%S')
@@ -50,6 +53,7 @@ def fragmenter(source, remix_lines, debug=False):
     for line in remix_lines:
         if line not in source:
             logging.exception('"%s" not found in the transcript', line)
+            raise ValueError()
 
     def iterate(lines):
 
@@ -81,6 +85,28 @@ def fragmenter(source, remix_lines, debug=False):
     return results
 
 
+def fine_tuning(raw_line, offset_step=0.05):
+    """given raw line potentially having symbols + or -
+    at the beginning or the end. each symbol is equivalent to
+    an ``offset_step`` (in seconds), positive or negative, which are applied
+    to the segment cut then
+
+    return  of the cleaned line, start_offset, end_offset
+
+    >>> fine_tuning('++this is a line---'):
+    {'this is a line': {'start_offset': 0.1, 'end_offset': -0.15}}
+    """
+    def _offset(symbols):
+        if not symbols:
+            return 0
+        sign = int('{}1'.format(symbols[0]))
+        return len(symbols) * offset_step * sign
+
+    result = re.match(OFFSET_PATTERN, raw_line).groupdict()
+    line = result.pop('line').strip()
+    return {line: {k: _offset(v) for k, v in result.items()}}
+
+
 def make_remix(remix_data, clips, output_type):
     """
     given a list in the form
@@ -95,13 +121,19 @@ def make_remix(remix_data, clips, output_type):
     return concatenate([clip.subclip(*segment) for line, segment in remix_data])
 
 
-def get_fragments_database(clips, transcripts, remix_lines, debug=False):
+def get_fragments_database(clips, transcripts, remix_lines, debug=False, language='es'):
+    """
+    :parameter clips: list of input clips
+    :parameter transcripts: raw texts of transcripts. map one-one to clips
+    :remix_lines: list of remix lines dictionaries as returned by :func:`fine_tuning`
+
+    """
     transcript = open(transcripts[0]).read().replace('\n', ' ').replace('  ', ' ')
 
-    sources = fragmenter(transcript, remix_lines, debug=debug)
+    sources = fragmenter(transcript, remix_lines.keys(), debug=debug)
     # create Task object
 
-    config_string = u"task_language=es|is_text_type=plain|os_task_file_format=json"
+    config_string = u"task_language={}|is_text_type=plain|os_task_file_format=json".format(language)
     fragments = OrderedDict()
     l_sources = len(sources)
     for i, source in enumerate(sources, 1):
@@ -117,11 +149,21 @@ def get_fragments_database(clips, transcripts, remix_lines, debug=False):
             output_json
         ])
         output = json.load(open(output_json))
-        fragments.update(
-            OrderedDict((f['lines'][0], (
-                float(f['begin']), float(f['end'])
-            )) for f in output['fragments'])
-        )
+        for f in output['fragments']:
+            line = f['lines'][0]
+            try:
+                offset_begin = remix_lines[line]['offset_begin']
+                offset_end = remix_lines[line]['offset_end']
+            except KeyError:
+                offset_begin = 0
+                offset_end = 0
+
+            fragments.update({
+                line: (
+                    float(f['begin']) + offset_begin,
+                    float(f['end']) + offset_end
+                )
+            })
     return fragments
 
 def ensure_audio(clip):
@@ -157,7 +199,11 @@ def miau(clips, transcripts, remix, output_file=None, dump=None, debug=False, **
             remix_data = json.load(remix_fh)
         except json.JSONDecodeError:
             remix_fh.seek(0)
-            remix_lines = [l.strip() for l in remix_fh if l.strip()]
+            remix_lines = OrderedDict()
+            for l in remix_fh:
+                if not l.strip():
+                    continue
+                remix_lines.update(fine_tuning(l))
             fragments = get_fragments_database(clips, transcripts, remix_lines)
             remix_data = [(l, fragments[l]) for l in remix_lines]
 

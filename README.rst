@@ -11,6 +11,31 @@ Remix speeches for fun and profit (**work in progress**)
 ``miau`` is a command line tool to easily generate remixes of clips like
 political speeches.
 
+Usage
+-----
+
+```
+(mvp_examples)tin@morochita:~/lab/miau$ miau -h
+Miau: Remix speeches for fun and profit
+
+Usage:
+  miau -i <input>... -t <transcript>... -r <remix> [-o <output>] [-d <dump>] [--debug]
+  miau -h | --help
+  miau --version
+
+Options:
+  -i --input <input>                Input clip/s
+  -t --transcripts <transcript>     Raw transcript of audio (sorted respect -i)
+  -r --remix <remix>                Script text (txt or json)
+  -d --dump <json>                  Dump remix json. Can be loaded with -r to reuse aligment.
+  -o --output <output>              Output filename
+  -h --help                         Show this screen.
+  --version                         Show version.
+  --verbosity=<verbosity>           Set verbosity
+```
+
+
+
 how it works?
 -------------
 
