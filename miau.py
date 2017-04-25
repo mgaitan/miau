@@ -8,33 +8,31 @@ Usage:
   miau --version
 
 Options:
-  -i --input <pattern>          Input files (clip/s and its transcript/subtitle)
-  -r --remix <remix>            Script text (txt or json)
-  -d --dump <json>              Dump remix json. Can be loaded with -r to reuse aligment.
-  -o --output <output>          Output filename
-  -h --help                     Show this screen.
-  --version                     Show version.
-  --verbosity=<verbosity>       Set verbosity
-
+  -i --input <pattern>      Input files (clip/s and its transcript/subtitle)
+  -r --remix <remix>        Script text (txt or json)
+  -d --dump <json>          Dump remix as json.
+                            Can be loaded with -r to reuse the aligment.
+  -o --output <output>      Output filename
+  -h --help                 Show this screen.
+  --version                 Show version.
 """
 
+from collections import OrderedDict
+import glob
+from itertools import chain
+import json
+import logging
 import os
 import re
-from itertools import chain
-import glob
-from collections import OrderedDict
-import json
 import tempfile
-import logging
-from aeneas.executetask import ExecuteTask
-from aeneas.task import Task
+
 from aeneas.tools.execute_task import ExecuteTaskCLI
+from docopt import docopt, DocoptExit
 from moviepy.editor import (
     VideoFileClip, AudioFileClip,
     concatenate_videoclips, concatenate_audioclips
 )
 from moviepy.tools import extensions_dict
-from docopt import docopt, DocoptExit
 
 VERSION = '0.1'
 
