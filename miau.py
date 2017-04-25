@@ -3,24 +3,25 @@
 Miau: Remix speeches for fun and profit
 
 Usage:
-  miau -i <input>... -t <transcript>... -r <remix> [-o <output>] [-d <dump>] [--debug]
+  miau -i <pattern>... -r <remix> [-o <output>] [-d <dump>] [--debug]
   miau -h | --help
   miau --version
 
 Options:
-  -i --input <input>                Input clip/s
-  -t --transcripts <transcript>     Raw transcript of audio (sorted respect -i)
-  -r --remix <remix>                Script text (txt or json)
-  -d --dump <json>                  Dump remix json. Can be loaded with -r to reuse aligment.
-  -o --output <output>              Output filename
-  -h --help                         Show this screen.
-  --version                         Show version.
-  --verbosity=<verbosity>           Set verbosity
+  -i --input <pattern>          Input files (clip/s and its transcript/subtitle)
+  -r --remix <remix>            Script text (txt or json)
+  -d --dump <json>              Dump remix json. Can be loaded with -r to reuse aligment.
+  -o --output <output>          Output filename
+  -h --help                     Show this screen.
+  --version                     Show version.
+  --verbosity=<verbosity>       Set verbosity
 
 """
 
 import os
 import re
+from itertools import chain
+import glob
 from collections import OrderedDict
 import json
 import tempfile
@@ -33,7 +34,7 @@ from moviepy.editor import (
     concatenate_videoclips, concatenate_audioclips
 )
 from moviepy.tools import extensions_dict
-from docopt import docopt
+from docopt import docopt, DocoptExit
 
 VERSION = '0.1'
 
@@ -221,9 +222,29 @@ def main(args=None):
     args = docopt(__doc__, argv=args, version=VERSION)
     if args['--debug']:
         logging.debug(args)
+
+    media = []
+    transcripts = []
+    for f in chain.from_iterable(glob.iglob(pattern) for pattern in args['--input']):
+        if f[-3:] in extensions_dict:
+            media.append(f)
+        else:
+            transcripts.append(f)
+
+    media_str = '   \n'.join(media)
+    transcripts_str = '   \n'.join(transcripts)
+    info = "Audio/Video:\n   {}\nTranscripts/subtitle:\n   {}".format(media_str, transcripts_str)
+
+    if not media or len(media) != len(transcripts):
+        raise DocoptExit(
+            "Input mismatch: the quantity of video/audio and transcription/subtitles differs\n{}".format(info)
+        )
+
+    logging.info(info)
+
     return miau(
-        args['--input'],
-        args['--transcripts'],
+        media,
+        transcripts,
         args['--remix'],
         args['--output'],
         args['--dump'],
