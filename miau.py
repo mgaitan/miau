@@ -3,7 +3,7 @@
 Miau: Remix speeches for fun and profit
 
 Usage:
-  miau -i <input>... -t <transcript>... -r <remix> [-o <output>] [-d <dump>] [--debug]
+  miau -i <input>... -t <transcript>... -r <remix> [-o <output>] [-d <dump>] [--language <language] [--debug]
   miau -h | --help
   miau --version
 
@@ -14,6 +14,7 @@ Options:
   -d --dump <json>                  Dump remix json. Can be loaded with -r to reuse aligment.
   -o --output <output>              Output filename
   -h --help                         Show this screen.
+  --language <language>             Forced language (2-letter code) for inputs (default auto)
   --version                         Show version.
   --verbosity=<verbosity>           Set verbosity
 
@@ -34,6 +35,7 @@ from moviepy.editor import (
 )
 from moviepy.tools import extensions_dict
 from docopt import docopt
+import langdetect
 
 VERSION = '0.1'
 
@@ -121,7 +123,7 @@ def make_remix(remix_data, clips, output_type):
     return concatenate([clip.subclip(*segment) for line, segment in remix_data])
 
 
-def get_fragments_database(clips, transcripts, remix_lines, debug=False, language='es'):
+def get_fragments_database(clips, transcripts, remix_lines, debug=False, force_language=None):
     """
     :parameter clips: list of input clips
     :parameter transcripts: raw texts of transcripts. map one-one to clips
@@ -133,10 +135,19 @@ def get_fragments_database(clips, transcripts, remix_lines, debug=False, languag
     sources = fragmenter(transcript, remix_lines.keys(), debug=debug)
     # create Task object
 
-    config_string = u"task_language={}|is_text_type=plain|os_task_file_format=json".format(language)
+
     fragments = OrderedDict()
     l_sources = len(sources)
     for i, source in enumerate(sources, 1):
+
+        if force_language:
+            language = force_language
+        else:
+            snippet = source[:source.index(' ', 100)]
+            language = langdetect.detect(snippet)
+            logging.info("Autodetected language: %s", language)
+
+        config_string = u"task_language={}|is_text_type=plain|os_task_file_format=json".format(language)
         with tempfile.NamedTemporaryFile('w', delete=False) as f_in:
             f_in.write(source)
         output_json = '{}.json'.format(f_in.name)
@@ -173,7 +184,7 @@ def ensure_audio(clip):
         return clip.audio
 
 
-def miau(clips, transcripts, remix, output_file=None, dump=None, debug=False, **kwargs):
+def miau(clips, transcripts, remix, output_file=None, dump=None, debug=False, force_language=None, **kwargs):
     # TODO: allow multiples transcript/videos
     if not output_file:
         output_file = '{}.mp4'.format(os.path.basename(remix).rsplit('.')[0])
@@ -204,7 +215,10 @@ def miau(clips, transcripts, remix, output_file=None, dump=None, debug=False, **
                 if not l.strip():
                     continue
                 remix_lines.update(fine_tuning(l))
-            fragments = get_fragments_database(clips, transcripts, remix_lines)
+            fragments = get_fragments_database(
+                clips, transcripts, remix_lines,
+                debug=debug, force_language=force_language
+            )
             remix_data = [(l, fragments[l]) for l in remix_lines]
 
     if dump:
@@ -227,7 +241,8 @@ def main(args=None):
         args['--remix'],
         args['--output'],
         args['--dump'],
-        args['--debug']
+        debug=args['--debug'],
+        force_language=args['--language']
     )
 
 
