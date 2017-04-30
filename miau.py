@@ -238,6 +238,14 @@ def main(args=None):
     if args['--debug']:
         logging.debug(args)
 
+    # from the whole input bag, split media files from transcriptions
+    # media and its transcript must be paired (i.e same order)
+    # for example, supose a folder with a video file macri_gato.mp4 and
+    # its transcription is macri_gato.txt
+    #
+    #  -i *.mp4 *.txt
+    #  -i macri_gato.*
+    #  -i macri_gato.mp4 macri_gato.txt
     media = []
     transcripts = []
     for f in chain.from_iterable(glob.iglob(pattern) for pattern in args['--input']):
@@ -249,13 +257,11 @@ def main(args=None):
     media_str = '   \n'.join(media)
     transcripts_str = '   \n'.join(transcripts)
     info = "Audio/Video:\n   {}\nTranscripts/subtitle:\n   {}".format(media_str, transcripts_str)
-
+    logging.info(info)
     if not media or len(media) != len(transcripts):
         raise DocoptExit(
-            "Input mismatch: the quantity of video/audio and transcription/subtitles differs\n{}".format(info)
+            "Input mismatch: the quantity of video/audio and transcriptions differs"
         )
-
-    logging.info(info)
 
     return miau(
         media,
