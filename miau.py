@@ -4,18 +4,18 @@ Miau: Remix speeches for fun and profit
 
 Usage:
 
-  miau -i <pattern>... -r <remix> [-o <output>] [-d <dump>] [--language <language] [--debug]
+  miau -i <pattern>... -r <remix> [-o <output>] [-d <dump>] [--lang <lang>] [--debug]
   miau -h | --help
   miau --version
 
 Options:
-  -i --input <pattern>      Input files (clip/s and its transcript/subtitle)
+  -i --input <pattern>      Input files (clip/s and its transcripts)
   -r --remix <remix>        Script text (txt or json)
   -d --dump <json>          Dump remix as json.
                             Can be loaded with -r to reuse the aligment.
   -o --output <output>      Output filename
   -h --help                 Show this screen.
-  --language <language>     Forced language (2-letter code) for inputs (default auto)
+  --lang <lang>             Forced language (2-letter code) for inputs (default auto)
   --version                 Show version.
 
 """
@@ -49,21 +49,40 @@ logging.basicConfig(format='[miau] %(asctime)s %(levelname)s: %(message)s',
 
 
 def fragmenter(source, remix_lines, debug=False):
-    """return as many versions of the source text
-    to ensure each line of the remix appears as an independent line
-    at least once
+    """
+    return as many versions of the source text
+    wrapped to ensure each remix verse (that exist on the source)
+    appears as an independent line at least once as an
+    independent line (if it exists)
+
+    >>> fragmenter('I have a dream that one day this nation will rise up '
+            'and live out the true meaning of its creed',
+        ['I have a dream',
+         'out the true',            # this two lines fit in the first iteration
+         'the true meaning',        # but this requires a new one due repeat a part of verse
+         'that all men are created equal'] # and this one is returned as not found.
+         )
+    (['\nI have a dream\nthat one day this nation will rise up and live \nout the true\nmeaning of its creed',
+      'I have a dream that one day this nation will rise up and live out \nthe true meaning\nof its creed'],
+     ['that all men are created equal'])
+
+
     """
 
+    # fragments not present in this source.
+    not_found_on_source = []
     for line in remix_lines:
         if line not in source:
-            logging.exception('"%s" not found in the transcript', line)
-            raise ValueError()
+            not_found_on_source.append(line)
 
     def iterate(lines):
 
         current = source
         not_found = []
         for line in lines:
+            if line in not_found_on_source:
+                continue
+
             if line not in current:
                 not_found.append(line)
                 continue
@@ -86,7 +105,7 @@ def fragmenter(source, remix_lines, debug=False):
             break
         remix_lines = not_found
 
-    return results
+    return results, not_found_on_source
 
 
 def fine_tuning(raw_line, offset_step=0.05):
@@ -111,72 +130,88 @@ def fine_tuning(raw_line, offset_step=0.05):
     return {line: {k: _offset(v) for k, v in result.items()}}
 
 
-def make_remix(remix_data, clips, output_type):
+def make_remix(remix_data, mvp_clips, output_type):
     """
     given a list in the form
-    [('line 1': (start, end)), ('line 2': (start, end)) ...]
+    [('line 1': {'begin': start, 'end': end, 'clip': file}), ...]
 
-    return the moviepy clip resulting of concatenate each fragment
+    return the moviepy clip resulting of concatenate each fragment from the proper clip
     """
     concatenate = (
         concatenate_videoclips if output_type == 'video' else concatenate_audioclips
     )
-    clip = clips[0]
-    return concatenate([clip.subclip(*segment) for line, segment in remix_data])
+    segments = []
+    for segment_data in remix_data.values():
+        clip = mvp_clips[segment_data['clip']]
+        segment = clip.subclip(segment_data['begin'], segment_data['end'])
+        segments.append(segment)
+
+    return concatenate(segments)
 
 
-def get_fragments_database(clips, transcripts, remix_lines, debug=False, force_language=None):
+def get_fragments_database(mvp_clips, transcripts, remix, debug=False, force_language=None):
     """
-    :parameter clips: list of input clips
+    :parameter clips: list of input clip filenames
     :parameter transcripts: raw texts of transcripts. map one-one to clips
-    :remix_lines: list of remix lines dictionaries as returned by :func:`fine_tuning`
+    :remix: list of remix lines dictionaries as returned by :func:`fine_tuning`
 
     """
-    transcript = open(transcripts[0]).read().replace('\n', ' ').replace('  ', ' ')
+    sources_by_clip = OrderedDict()
+    remix_lines = remix.keys()
+    for clip, transcript in zip(mvp_clips, transcripts):
+        transcript = open(transcript).read().replace('\n', ' ').replace('  ', ' ')
+        sources_by_clip[clip], remix_lines = fragmenter(transcript, remix_lines.keys(), debug=debug)
+        if not remix_lines:
+            break
+    else:
+        if remix_lines:
+            raise DocoptExit(
+                "Remix verse/s not found in transcripts given:\n{}".format('\n- '.join(remix_lines))
+        )
 
-    sources = fragmenter(transcript, remix_lines.keys(), debug=debug)
     # create Task object
 
-
     fragments = OrderedDict()
-    l_sources = len(sources)
-    for i, source in enumerate(sources, 1):
+    for clip, sources in sources_by_clip.items():
+        l_sources = len(sources)
+        for i, source in enumerate(sources, 1):
+            if force_language:
+                language = force_language
+            elif i == 1:
+                # for first iteration of the clip, autodetect the language
+                snippet = source[:source.index(' ', 100)]
+                language = langdetect.detect(snippet)
+                logging.info("Autodetected language for %s: %s", clip, language)
 
-        if force_language:
-            language = force_language
-        else:
-            snippet = source[:source.index(' ', 100)]
-            language = langdetect.detect(snippet)
-            logging.info("Autodetected language: %s", language)
+            config_string = u"task_language={}|is_text_type=plain|os_task_file_format=json".format(language)
+            with tempfile.NamedTemporaryFile('w', delete=False) as f_in:
+                f_in.write(source)
+            output_json = '{}.json'.format(f_in.name)
+            logging.info('Forcing aligment for %s (step %s/%s)', clip, i, l_sources)
+            ExecuteTaskCLI(use_sys=False).run(arguments=[
+                None,
+                os.path.abspath(clip),
+                f_in.name,
+                config_string,
+                output_json
+            ])
+            output = json.load(open(output_json))
+            for f in output['fragments']:
+                line = f['lines'][0]
+                try:
+                    offset_begin = remix_lines[line]['offset_begin']
+                    offset_end = remix_lines[line]['offset_end']
+                except KeyError:
+                    offset_begin = 0
+                    offset_end = 0
 
-        config_string = u"task_language={}|is_text_type=plain|os_task_file_format=json".format(language)
-        with tempfile.NamedTemporaryFile('w', delete=False) as f_in:
-            f_in.write(source)
-        output_json = '{}.json'.format(f_in.name)
-        logging.info('Forcing aligment (step %s/%s)', i, l_sources)
-        ExecuteTaskCLI(use_sys=False).run(arguments=[
-            None,
-            os.path.abspath(clips[0]),
-            f_in.name,
-            config_string,
-            output_json
-        ])
-        output = json.load(open(output_json))
-        for f in output['fragments']:
-            line = f['lines'][0]
-            try:
-                offset_begin = remix_lines[line]['offset_begin']
-                offset_end = remix_lines[line]['offset_end']
-            except KeyError:
-                offset_begin = 0
-                offset_end = 0
-
-            fragments.update({
-                line: (
-                    float(f['begin']) + offset_begin,
-                    float(f['end']) + offset_end
-                )
-            })
+                fragments.update({
+                    line: {
+                        'begin': float(f['begin']) + offset_begin,
+                        'end': float(f['end']) + offset_end,
+                        'clip': clip
+                    }
+                })
     return fragments
 
 def ensure_audio(clip):
@@ -187,28 +222,32 @@ def ensure_audio(clip):
 
 
 def miau(clips, transcripts, remix, output_file=None, dump=None, debug=False, force_language=None, **kwargs):
-    # TODO: allow multiples transcript/videos
     if not output_file:
+        # default to a video with the same filename than the remix
         output_file = '{}.mp4'.format(os.path.basename(remix).rsplit('.')[0])
 
+    # map input files to moviepy clips
     mvp_clips = []
-
-    for clip in clips:
+    for filename in clips:
         try:
-            clip = VideoFileClip(clip)
+            clip = VideoFileClip(filename)
         except KeyError:
-            clip = AudioFileClip(clip)
-        mvp_clips.append(clip)
+            clip = AudioFileClip(filename)
+        mvp_clips[filename] = clip
 
     output_type = extensions_dict[os.path.basename(output_file).rsplit('.')[1]]['type']
-    if output_type == 'video' and not all(isinstance(clip, VideoFileClip) for clip in mvp_clips):
+
+    if output_type == 'video' and not all(isinstance(clip, VideoFileClip) for clip in mvp_clips.values()):
         logging.error("Output expect to be a video but input clips aren't all videos")
         return
     elif output_type == 'audio':
-        mvp_clips = [ensure_audio(clip) for clip in mvp_clips]
+        # cast clips to audio if needed
+        mvp_clips = OrderedDict([(k, ensure_audio(v)) for k, v in mvp_clips.items()])
 
     with open(remix) as remix_fh:
         try:
+            # read data from a json file (as generated by --dump option)
+            # this skip the aligment
             remix_data = json.load(remix_fh)
         except json.JSONDecodeError:
             remix_fh.seek(0)
@@ -235,6 +274,7 @@ def miau(clips, transcripts, remix, output_file=None, dump=None, debug=False, fo
 
 def main(args=None):
     args = docopt(__doc__, argv=args, version=VERSION)
+    import ipdb; ipdb.set_trace()
     if args['--debug']:
         logging.debug(args)
 
@@ -260,7 +300,7 @@ def main(args=None):
     logging.info(info)
     if not media or len(media) != len(transcripts):
         raise DocoptExit(
-            "Input mismatch: the quantity of video/audio and transcriptions differs"
+            "Input mismatch: the quantity of inputs and transcriptions differs"
         )
 
     return miau(
