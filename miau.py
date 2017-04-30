@@ -3,19 +3,18 @@
 Miau: Remix speeches for fun and profit
 
 Usage:
-
-  miau -i <pattern>... -r <remix> [-o <output>] [-d <dump>] [--lang <lang>] [--debug]
+  miau <input_files>... -r <remix> [-o <output>] [-d <dump>] [--lang <lang>] [--debug]
   miau -h | --help
   miau --version
 
 Options:
-  -i --input <pattern>      Input files (clip/s and its transcripts)
+  <input_files>             Input files patterns (clip/s and its transcripts)
   -r --remix <remix>        Script text (txt or json)
   -d --dump <json>          Dump remix as json.
                             Can be loaded with -r to reuse the aligment.
   -o --output <output>      Output filename
   -h --help                 Show this screen.
-  --lang <lang>             Forced language (2-letter code) for inputs (default auto)
+  --lang <lang>             Set language (2-letter code) for inputs (default autodetect)
   --version                 Show version.
 """
 
@@ -273,21 +272,18 @@ def miau(clips, transcripts, remix, output_file=None, dump=None, debug=False, fo
 
 def main(args=None):
     args = docopt(__doc__, argv=args, version=VERSION)
-    import ipdb; ipdb.set_trace()
-    if args['--debug']:
-        logging.debug(args)
 
     # from the whole input bag, split media files from transcriptions
     # media and its transcript must be paired (i.e same order)
     # for example, supose a folder with a video file macri_gato.mp4 and
     # its transcription is macri_gato.txt
     #
-    #  -i *.mp4 *.txt
-    #  -i macri_gato.*
-    #  -i macri_gato.mp4 macri_gato.txt
+    #  *.mp4 *.txt
+    #  macri_gato.*
+    #  macri_gato.mp4 macri_gato.txt
     media = []
     transcripts = []
-    for f in chain.from_iterable(glob.iglob(pattern) for pattern in args['--input']):
+    for f in chain.from_iterable(glob.iglob(pattern) for pattern in args['<input_files>']):
         if f[-3:] in extensions_dict:
             media.append(f)
         else:
