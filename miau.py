@@ -17,7 +17,6 @@ Options:
   -h --help                 Show this screen.
   --lang <lang>             Forced language (2-letter code) for inputs (default auto)
   --version                 Show version.
-
 """
 
 from collections import OrderedDict
@@ -141,7 +140,7 @@ def make_remix(remix_data, mvp_clips, output_type):
         concatenate_videoclips if output_type == 'video' else concatenate_audioclips
     )
     segments = []
-    for segment_data in remix_data.values():
+    for _, segment_data in remix_data:
         clip = mvp_clips[segment_data['clip']]
         segment = clip.subclip(segment_data['begin'], segment_data['end'])
         segments.append(segment)
@@ -157,10 +156,10 @@ def get_fragments_database(mvp_clips, transcripts, remix, debug=False, force_lan
 
     """
     sources_by_clip = OrderedDict()
-    remix_lines = remix.keys()
+    remix_lines = list(remix.keys())
     for clip, transcript in zip(mvp_clips, transcripts):
         transcript = open(transcript).read().replace('\n', ' ').replace('  ', ' ')
-        sources_by_clip[clip], remix_lines = fragmenter(transcript, remix_lines.keys(), debug=debug)
+        sources_by_clip[clip], remix_lines = fragmenter(transcript, remix_lines, debug=debug)
         if not remix_lines:
             break
     else:
@@ -199,8 +198,8 @@ def get_fragments_database(mvp_clips, transcripts, remix, debug=False, force_lan
             for f in output['fragments']:
                 line = f['lines'][0]
                 try:
-                    offset_begin = remix_lines[line]['offset_begin']
-                    offset_end = remix_lines[line]['offset_end']
+                    offset_begin = remix[line]['offset_begin']
+                    offset_end = remix[line]['offset_end']
                 except KeyError:
                     offset_begin = 0
                     offset_end = 0
@@ -227,7 +226,7 @@ def miau(clips, transcripts, remix, output_file=None, dump=None, debug=False, fo
         output_file = '{}.mp4'.format(os.path.basename(remix).rsplit('.')[0])
 
     # map input files to moviepy clips
-    mvp_clips = []
+    mvp_clips = OrderedDict()
     for filename in clips:
         try:
             clip = VideoFileClip(filename)
@@ -310,9 +309,8 @@ def main(args=None):
         args['--output'],
         args['--dump'],
         debug=args['--debug'],
-        force_language=args['--language']
+        force_language=args['--lang']
     )
-
 
 if __name__ == '__main__':
     main()
