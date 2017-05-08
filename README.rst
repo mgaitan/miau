@@ -16,34 +16,32 @@ Usage
 
 ::
 
-  (mvp_examples)tin@morochita:~/lab/miau$ miau -h
+  tin@morochita:~/lab/miau$ miau --help
   Miau: Remix speeches for fun and profit
 
   Usage:
-    miau -i <input>... -t <transcript>... -r <remix> [-o <output>] [-d <dump>] [--debug]
+    miau <input_files>... -r <remix> [-o <output>] [-d <dump>] [--lang <lang>] [--debug]
     miau -h | --help
     miau --version
 
   Options:
-    -i --input <input>                Input clip/s
-    -t --transcripts <transcript>     Raw transcript of audio (sorted respect -i)
-    -r --remix <remix>                Script text (txt or json)
-    -d --dump <json>                  Dump remix json. Can be loaded with -r to reuse aligment.
-    -o --output <output>              Output filename
-    -h --help                         Show this screen.
-    --version                         Show version.
-    --verbosity=<verbosity>           Set verbosity
-  
+    <input_files>             Input files patterns (clip/s and its transcripts)
+    -r --remix <remix>        Script text (txt or json)
+    -d --dump <json>          Dump remix as json.
+                              Can be loaded with -r to reuse the aligment.
+    -o --output <output>      Output filename
+    -h --help                 Show this screen.
+    --lang <lang>             Set language (2-letter code) for inputs (default autodetect)
+    --version                 Show version.
 
 
 how it works?
 -------------
 
 It uses `aeneas <https://github.com/readbeyond/aeneas>`__ to syncronize
-the transcription and the input audio/video file (force align), using as many iterations as needed. 
+the transcription and the input audio/video file (force align), using as many iterations as needed.
 
-Another text define the script (i.e. "output speech"), using fragments of the input
-transcription. ``miau`` cuts the proper parts and join each of them using
+Another text define the remix script (i.e. "output speech"), using fragments of the input transcription. ``miau`` cuts the proper parts and join each of them using
 `moviepy <https://github.com/Zulko/moviepy>`__.
 
 
@@ -53,7 +51,7 @@ why *miau*?
 ``miau`` means ``meow`` in spanish. It's a joke about the popular
 (derogatory) `nickname assigned to Argentina's
 president <https://www.taringa.net/posts/noticias/19819104/Why-Macri-Cat.html>`__
-Mauricio "Cat" Macri. As I started this tool to make fun of President Macri, 
+Mauricio "Cat" Macri. As I started this tool to make fun of President Macri,
 this was a pretty obvious choice.
 
 
