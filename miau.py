@@ -108,11 +108,12 @@ def fragmenter(source, remix_lines, debug=False):
 
 def fine_tuning(raw_line, offset_step=0.05):
     """given raw line potentially having symbols + or -
-    at the beginning or the end. each symbol is equivalent to
-    an ``offset_step`` (in seconds), positive or negative, which are applied
-    to the segment cut then
+    at the beginning or the end,
 
     return  of the cleaned line, start_offset, end_offset
+
+    each symbol is equivalent to an ``offset_step`` (in seconds),
+    positive or negative, which are applied to the segment cut then
 
     >>> fine_tuning('++this is a line---'):
     {'this is a line': {'start_offset': 0.1, 'end_offset': -0.15}}
@@ -130,10 +131,15 @@ def fine_tuning(raw_line, offset_step=0.05):
 
 def make_remix(remix_data, mvp_clips, output_type):
     """
-    given a list in the form
-    [('line 1': {'begin': start, 'end': end, 'clip': file}), ...]
+    Return the moviepy clip resulting of concatenate each
+    segment listed in the remix data
 
-    return the moviepy clip resulting of concatenate each fragment from the proper clip
+    :param remix_data: list of verses with its metadata to cut from::
+
+        [('line on remix': {'begin': start, 'end': end, 'clip': file}), ...]
+
+    :param mvp_clips: dictionary of filename: {moviepy's clip}
+    :param output_type: ``'audio'`` or ``'video'``
     """
     concatenate = (
         concatenate_videoclips if output_type == 'video' else concatenate_audioclips
@@ -149,6 +155,9 @@ def make_remix(remix_data, mvp_clips, output_type):
 
 def get_fragments_database(mvp_clips, transcripts, remix, debug=False, force_language=None):
     """
+    generate a dictionary containing segment information for every
+    line produced by :func:`fragmenter`
+
     :parameter clips: list of input clip filenames
     :parameter transcripts: raw texts of transcripts. map one-one to clips
     :remix: list of remix lines dictionaries as returned by :func:`fine_tuning`
@@ -156,6 +165,8 @@ def get_fragments_database(mvp_clips, transcripts, remix, debug=False, force_lan
     """
     sources_by_clip = OrderedDict()
     remix_lines = list(remix.keys())
+
+    #
     for clip, transcript in zip(mvp_clips, transcripts):
         transcript = open(transcript).read().replace('\n', ' ').replace('  ', ' ')
         sources_by_clip[clip], remix_lines = fragmenter(transcript, remix_lines, debug=debug)
@@ -163,7 +174,7 @@ def get_fragments_database(mvp_clips, transcripts, remix, debug=False, force_lan
             break
     else:
         if remix_lines:
-            raise DocoptExit(
+            raise ValueError(
                 "Remix verse/s not found in transcripts given:\n{}".format('\n- '.join(remix_lines))
         )
 
@@ -210,7 +221,8 @@ def get_fragments_database(mvp_clips, transcripts, remix, debug=False, force_lan
                         'clip': clip
                     }
                 })
-    return fragments
+        return fragments
+
 
 def ensure_audio(clip):
     if isinstance(clip, AudioFileClip):
@@ -220,6 +232,15 @@ def ensure_audio(clip):
 
 
 def miau(clips, transcripts, remix, output_file=None, dump=None, debug=False, force_language=None, **kwargs):
+    """Main miau entrypoint
+
+    :param clips: list of audio/video files (as supported by moviepy)
+    :param transcripts: list of transcriptions filenames, in the
+                        same order of ``clips`
+    :param remix: remix filename. Could be a raw text or a json file containing
+
+
+
     if not output_file:
         # default to a video with the same filename than the remix
         output_file = '{}.mp4'.format(os.path.basename(remix).rsplit('.')[0])
@@ -298,15 +319,18 @@ def main(args=None):
             "Input mismatch: the quantity of inputs and transcriptions differs"
         )
 
-    return miau(
-        media,
-        transcripts,
-        args['--remix'],
-        args['--output'],
-        args['--dump'],
-        debug=args['--debug'],
-        force_language=args['--lang']
-    )
+    try:
+        return miau(
+            media,
+            transcripts,
+            args['--remix'],
+            args['--output'],
+            args['--dump'],
+            debug=args['--debug'],
+            force_language=args['--lang']
+        )
+    except ValueError as e:
+        raise DocoptExit(str(e))
 
 if __name__ == '__main__':
     main()
