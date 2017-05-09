@@ -253,6 +253,12 @@ def miau(clips, transcripts, remix, output_file=None, dump=None, debug=False,
     if not output_file:
         # default to a video with the same filename than the remix
         output_file = '{}.mp4'.format(os.path.basename(remix).rsplit('.')[0])
+    output_extension = os.path.splitext(output_file)[1][1:]
+    if output_extension not in extensions_dict:
+        raise ValueError(
+            'Output format not supported: {}'.format(output_extension)
+        )
+    output_type = extensions_dict[output_extension]['type']
 
     # map input files to moviepy clips
     mvp_clips = OrderedDict()
@@ -262,8 +268,6 @@ def miau(clips, transcripts, remix, output_file=None, dump=None, debug=False,
         except KeyError:
             clip = AudioFileClip(filename)
         mvp_clips[filename] = clip
-
-    output_type = extensions_dict[os.path.basename(output_file).rsplit('.')[1]]['type']
 
     if output_type == 'video' and not all(isinstance(clip, VideoFileClip) for clip in mvp_clips.values()):
         logging.error("Output expect to be a video but input clips aren't all videos")
@@ -313,11 +317,12 @@ def main(args=None):
     #  macri_gato.mp4 macri_gato.txt
     media = []
     transcripts = []
-    for f in chain.from_iterable(glob.iglob(pattern) for pattern in args['<input_files>']):
-        if f[-3:] in extensions_dict:
-            media.append(f)
+    for filename in chain.from_iterable(glob.iglob(pattern) for pattern in args['<input_files>']):
+        output_extension = os.path.splitext(filename)[1][1:]
+        if output_extension in extensions_dict:
+            media.append(filename)
         else:
-            transcripts.append(f)
+            transcripts.append(filename)
 
     media_str = '   \n'.join(media)
     transcripts_str = '   \n'.join(transcripts)
