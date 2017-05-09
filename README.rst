@@ -6,7 +6,8 @@ Remix speeches for fun and profit (**work in progress**)
 .. |Travis| |PyPi| |PyPi Downloads|
 
 :License: BSD
-:Documentation: https://miau.readthedocs.org
+
+.. :Documentation: https://miau.readthedocs.org
 
 ``miau`` is a command line tool to easily generate remixes of clips like
 political speeches.
@@ -44,7 +45,13 @@ Examples
    :target: https://www.youtube.com/watch?v=5nzWXjNJ9d8
 
 
-how it works?
+- `Macron on France vs others <https://github.com/mgaitan/miau/blob/master/examples/macron/>`_
+
+.. image:: http://img.youtube.com/vi/MhTv5rPo_8A/0.jpg
+   :target: https://www.youtube.com/watch?v=MhTv5rPo_8A
+
+
+How it works?
 -------------
 
 It uses `aeneas <https://github.com/readbeyond/aeneas>`__ to syncronize
@@ -54,11 +61,11 @@ Another text define the remix script (i.e. "output speech"), using fragments of 
 `moviepy <https://github.com/Zulko/moviepy>`__.
 
 
-why *miau*?
+Why *miau*?
 -----------
 
 ``miau`` means ``meow`` in spanish. It's a joke about the popular
-(derogatory) `nickname assigned to Argentina's
+(pejorative) `nickname assigned to Argentina's
 president <https://www.taringa.net/posts/noticias/19819104/Why-Macri-Cat.html>`__
 Mauricio "Cat" Macri. As I started this tool to make fun of President Macri,
 this was a pretty obvious choice.
