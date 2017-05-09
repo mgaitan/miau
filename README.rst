@@ -35,6 +35,15 @@ Usage
     --version                 Show version.
 
 
+Examples
+--------
+
+- `Merkel on Europe <https://github.com/mgaitan/miau/blob/master/examples/merkel/`_
+
+.. image:: http://img.youtube.com/vi/5nzWXjNJ9d8/0.jpg
+   :target: https://www.youtube.com/watch?v=5nzWXjNJ9d8
+
+
 how it works?
 -------------
 
