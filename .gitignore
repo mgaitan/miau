@@ -3,6 +3,15 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# multimedia
+*.webm
+*.mp4
+*.mp3
+*.mkv
+*.avi
+*.ogg
+*.m4a
+
 # C extensions
 *.so
 
