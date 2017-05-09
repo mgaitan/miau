@@ -214,13 +214,15 @@ def get_fragments_database(mvp_clips, transcripts, remix, debug=False, force_lan
                     offset_begin = 0
                     offset_end = 0
 
-                fragments.update({
-                    line: {
-                        'begin': float(f['begin']) + offset_begin,
-                        'end': float(f['end']) + offset_end,
-                        'clip': clip
-                    }
-                })
+                fragments[line] = {
+                    'begin': float(f['begin']) + offset_begin,
+                    'end': float(f['end']) + offset_end,
+                    'clip': clip
+                }
+        if debug:
+            d = tempfile.mkstemp(suffix='.json')[1]
+            json.dump(fragments, open(d, 'w'), indent=2)
+            logging.debug('Segments database written to {}'.format(d))
         return fragments
 
 
