@@ -12,7 +12,7 @@ Options:
   -r --remix <remix>        Script text (txt or json)
   -d --dump <json>          Dump remix as json.
                             Can be loaded with -r to reuse the aligment.
-  -o --output <output>      Output filename
+  -o --output <output>      Output filename (default to mp4 with remix's basename)
   -h --help                 Show this screen.
   --lang <lang>             Set language (2-letter code) for inputs (default autodetect)
   --version                 Show version.
@@ -287,7 +287,8 @@ def miau(clips, transcripts, remix, output_file=None, dump=None, debug=False,
             remix_fh.seek(0)
             remix_lines = OrderedDict()
             for l in remix_fh:
-                if not l.strip():
+                l = l.strip()
+                if not l or l.startswith('#'):
                     continue
                 remix_lines.update(fine_tuning(l))
             fragments = get_fragments_database(
