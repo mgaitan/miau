@@ -3,7 +3,7 @@
 Miau: Remix speeches for fun and profit
 
 Usage:
-  miau <input_files>... -r <remix> [-o <output>] [-d <dump>] [--lang <lang>] [--debug]
+  miau <input_files>... -r <remix> [-o <output> -d <dump> --lang <lang> --debug]
   miau -h | --help
   miau --version
 
@@ -94,7 +94,9 @@ def fragmenter(source, remix_lines, debug=False):
         logging.info('Fragmenting source. Iteration %s', count)
         result, not_found = iterate(remix_lines)
         if debug:
-            with open('_debug_source_{}.txt'.format(count), 'w') as _t:
+            d = tempfile.mkstemp(suffix='-iter{}.txt'.format(count))[1]
+            logging.debug('Writing fragmented source to {}'.format(d))
+            with open(d, 'w') as _t:
                 _t.write(result)
         count += 1
         results.append(result)
