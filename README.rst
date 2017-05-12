@@ -39,10 +39,11 @@ Usage
 Examples
 --------
 
-- `Macri: "Pobreza para nuestros docentes" <https://github.com/mgaitan/miau/blob/master/examples/macri_1/>`_  (spanish)
 
-.. image:: http://img.youtube.com/vi/vYE9AJaPAIA/0.jpg
-  :target: https://youtu.be/vYE9AJaPAIA
+- `Macri: "Vamos a salir para arriba en cualquier momento" <https://github.com/mgaitan/miau/blob/master/examples/macri_2/>`_  (spanish)
+
+.. image:: http://img.youtube.com/vi/YtY_CRiFKPY/0.jpg
+  :target: https://youtu.be/YtY_CRiFKPY
 
 
 - `Merkel on Europe <https://github.com/mgaitan/miau/blob/master/examples/merkel/>`_ (english)
@@ -51,10 +52,18 @@ Examples
    :target: https://www.youtube.com/watch?v=5nzWXjNJ9d8
 
 
-- `Macron on France vs others <https://github.com/mgaitan/miau/blob/master/examples/macron/>`_  (french)
+- `Macron "Autres sont des menaces" <https://github.com/mgaitan/miau/blob/master/examples/macron/>`_  (french)
 
 .. image:: http://img.youtube.com/vi/MhTv5rPo_8A/0.jpg
    :target: https://www.youtube.com/watch?v=MhTv5rPo_8A
+
+
+- `Macri: "Pobreza para nuestros docentes" <https://github.com/mgaitan/miau/blob/master/examples/macri_1/>`_  (spanish)
+
+.. image:: http://img.youtube.com/vi/vYE9AJaPAIA/0.jpg
+  :target: https://youtu.be/vYE9AJaPAIA
+
+
 
 
 How it works?
