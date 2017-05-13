@@ -1,0 +1,2 @@
+youtube-dl -f mp4 https://www.youtube.com/watch?v=12Z3J1uzd0Q --external-downloader ffmpeg --external-downloader-args '-ss 153  -t 67'
+miau Lo\ que\ tú\ Quieras\ Oír-12Z3J1uzd0Q.mp4 mensaje_original.txt -r remix_de_sofia.txt -o remix_de_sofia.mp3 --debug
