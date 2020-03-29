@@ -64,8 +64,6 @@ Examples
   :target: https://youtu.be/vYE9AJaPAIA
 
 
-
-
 How it works?
 -------------
 
@@ -74,6 +72,8 @@ the transcription and the input audio/video file (force align), using as many it
 
 Another text define the remix script (i.e. "output speech"), using fragments of the input transcription. ``miau`` cuts the proper parts and join each of them using
 `moviepy <https://github.com/Zulko/moviepy>`__.
+
+A detailed blog post (in spanish) is `here <http://mgaitan.github.io/posts/miau-cuando-el-gato-dice-la-verdad/>`_
 
 
 Why *miau*?
